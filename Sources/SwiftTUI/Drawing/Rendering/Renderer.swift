@@ -1,3 +1,4 @@
+import AnsiEscapes
 import Foundation
 
 class Renderer {
@@ -57,8 +58,8 @@ class Renderer {
     }
 
     func stop() {
-        write(EscapeSequence.disableAlternateBuffer)
-        write(EscapeSequence.showCursor)
+        write(ANSIEscapeCode.ExitAlternativeScreen)
+        write(ANSIEscapeCode.CursorShow)
     }
 
     private func drawPixel(_ cell: Cell, at position: Position) {
@@ -68,7 +69,7 @@ class Renderer {
         if cache[position.line.intValue][position.column.intValue] != cell {
             cache[position.line.intValue][position.column.intValue] = cell
             if self.currentPosition != position {
-                write(EscapeSequence.moveTo(position))
+                write(moveTo(position, screenHeight: height))
                 self.currentPosition = position
             }
             if self.currentForegroundColor != cell.foregroundColor {
@@ -87,10 +88,10 @@ class Renderer {
     }
 
     private func setup() {
-        write(EscapeSequence.enableAlternateBuffer)
-        write(EscapeSequence.clearScreen)
-        write(EscapeSequence.moveTo(currentPosition))
-        write(EscapeSequence.hideCursor)
+        write(ANSIEscapeCode.EnterAlternativeScreen)
+        write(ANSIEscapeCode.ClearScreen)
+        write(moveTo(currentPosition, screenHeight: layer.frame.size.height))
+        write(ANSIEscapeCode.CursorHide)
     }
 
     private func updateAttributes(_ attributes: CellAttributes) {
@@ -117,6 +118,16 @@ class Renderer {
         currentAttributes = attributes
     }
 
+    /// Converts SwiftTUI coordinates (bottom-left origin) to terminal coordinates (top-left origin, 1-indexed)
+    /// - Parameters:
+    ///   - position: Position in SwiftTUI coordinate system (line=0 is bottom, negative is up)
+    ///   - screenHeight: Height of the screen
+    /// - Returns: ANSI escape sequence to move cursor to the specified position
+    private func moveTo(_ position: Position, screenHeight: Extended) -> String {
+        let terminalRow = position.row - 1
+        let terminalColumn = position.column
+        return ANSIEscapeCode.moveCursorTo(x: terminalColumn.intValue, y: terminalRow.intValue)
+    }
 }
 
 private func write(_ str: String) {

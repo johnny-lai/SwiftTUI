@@ -1,18 +1,6 @@
 import Foundation
 
 enum EscapeSequence {
-    static let clearScreen = "\u{1b}[2J"
-
-    static let enableAlternateBuffer = "\u{1b}[?1049h"
-    static let disableAlternateBuffer = "\u{1b}[?1049l"
-
-    static let showCursor = "\u{1b}[?25h"
-    static let hideCursor = "\u{1b}[?25l"
-
-    static func moveTo(_ position: Position) -> String {
-        "\u{1b}[\(position.line + 1);\(position.column + 1)H"
-    }
-
     static func setForegroundColor(_ color: ANSIColor) -> String {
         "\u{1b}[\(color.foregroundCode)m"
     }
