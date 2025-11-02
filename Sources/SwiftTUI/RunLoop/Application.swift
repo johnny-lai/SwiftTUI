@@ -30,7 +30,7 @@ public class Application: @unchecked Sendable {
         window.firstResponder = control.firstSelectableElement
         window.firstResponder?.becomeFirstResponder()
 
-        renderer = Renderer(layer: window.layer)
+        renderer = Renderer(layer: window.layer, contentLayer: control.layer)
         window.layer.renderer = renderer
 
         node.application = self
@@ -54,8 +54,9 @@ public class Application: @unchecked Sendable {
     @MainActor public func start() {
         setInputMode()
         updateWindowSize()
-        control.layout(size: window.layer.frame.size)
-        renderer.draw()
+        let proposal = control.size(proposedSize: Size(width: window.layer.frame.size.width, height: 0))
+        control.layout(size: Size(width: window.layer.frame.size.width, height: proposal.height))
+        //renderer.draw()
 
         let stdInSource = DispatchSource.makeReadSource(fileDescriptor: STDIN_FILENO, queue: .main)
         stdInSource.setEventHandler(qos: .default, flags: [], handler: self.handleInput)
@@ -153,7 +154,9 @@ public class Application: @unchecked Sendable {
         }
         invalidatedNodes = []
 
-        control.layout(size: window.layer.frame.size)
+        let proposal = control.size(proposedSize: Size(width: window.layer.frame.size.width, height: 0))
+        control.layout(size: Size(width: window.layer.frame.size.width, height: proposal.height))
+        //control.layout(size: window.layer.frame.size)
         renderer.update()
     }
 
@@ -171,6 +174,10 @@ public class Application: @unchecked Sendable {
             return
         }
         window.layer.frame.size = Size(width: Extended(Int(size.ws_col)), height: Extended(Int(size.ws_row)))
+
+        let proposal = control.size(proposedSize: Size(width: window.layer.frame.size.width, height: 0))
+        control.layout(size: Size(width: window.layer.frame.size.width, height: proposal.height))
+        
         renderer.setCache()
     }
 

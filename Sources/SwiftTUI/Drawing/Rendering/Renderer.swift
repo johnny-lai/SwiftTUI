@@ -3,6 +3,8 @@ import Foundation
 
 class Renderer {
     var layer: Layer
+    var contentLayer: Layer
+    var linesRendered = 0
 
     /// Even though we only redraw invalidated parts of the screen, terminal
     /// drawing is currently still slow, as it involves moving the cursor
@@ -21,8 +23,9 @@ class Renderer {
 
     weak var application: Application?
 
-    init(layer: Layer) {
+    init(layer: Layer, contentLayer: Layer) {
         self.layer = layer
+        self.contentLayer = contentLayer
         setCache()
         setup()
     }
@@ -40,7 +43,7 @@ class Renderer {
     }
 
     /// Draw a specific area, or the entire layer if the area is nil.
-    func draw(rect: Rect? = nil) {
+    func draw2(rect: Rect? = nil) {
         if rect == nil { layer.invalidated = nil }
         let rect = rect ?? Rect(position: .zero, size: layer.frame.size)
         guard rect.size.width > 0, rect.size.height > 0 else {
@@ -51,25 +54,96 @@ class Renderer {
             for column in rect.minColumn.intValue ... rect.maxColumn.intValue {
                 let position = Position(column: Extended(column), line: Extended(line))
                 if let cell = layer.cell(at: position) {
-                    drawPixel(cell, at: Position(column: Extended(column), line: Extended(line)))
+                    drawPixel2(cell, at: Position(column: Extended(column), line: Extended(line)))
                 }
             }
         }
     }
 
+    func draw(rect: Rect? = nil) {
+        if rect == nil { layer.invalidated = nil }
+        let rect = rect ?? Rect(position: .zero, size: layer.frame.size)
+        guard rect.size.width > 0, rect.size.height > 0 else {
+            assertionFailure("Trying to draw in empty rect")
+            return
+        }
+
+        // Calculate number of rows that needs to be re-rendered
+        let contentHeight = contentLayer.frame.size.height.intValue
+        let windowHeight = layer.frame.size.height.intValue
+        var offset = 0
+        if contentHeight < windowHeight {
+            offset = 0
+        } else {
+            offset = contentHeight - windowHeight
+        }
+
+        // Extend terminal window to cover new lines
+        var linesAdded = 0
+        if contentHeight > linesRendered {
+            for _ in linesRendered ..< contentHeight {
+                write("\n")
+                linesAdded += 1
+            }
+        }
+
+        // Move cursor back required lines
+        if contentHeight < windowHeight {
+            write(ANSIEscapeCode.moveCursorTo(x: 0, y: windowHeight - contentHeight))
+        } else {
+            write(ANSIEscapeCode.moveCursorTo(x: 0, y: 0))
+        }
+
+        // Start on beginning of line
+        ///self.currentPosition += Position(column: .zero, line: Extended(-moveUp))
+
+        // Render those lines again
+        let minLine = rect.minLine.intValue + offset
+        for line in minLine ..< contentHeight {
+            for column in rect.minColumn.intValue ... rect.maxColumn.intValue {
+                let position = Position(column: Extended(column), line: Extended(line))
+                if let cell = layer.cell(at: position) {
+                    drawPixel(cell)
+                }
+            }
+            //write(ANSIEscapeCode.CursorNextLine)
+            if line < contentHeight - 1 {
+                write("\n")
+            }
+            // write("\n")
+        }
+
+        linesRendered = contentHeight
+    }
+
     func stop() {
-        write(ANSIEscapeCode.ExitAlternativeScreen)
+        //write(ANSIEscapeCode.ExitAlternativeScreen)
         write(ANSIEscapeCode.CursorShow)
     }
 
-    private func drawPixel(_ cell: Cell, at position: Position) {
+    private func drawPixel(_ cell: Cell) {
+        if self.currentForegroundColor != cell.foregroundColor {
+            write(cell.foregroundColor.foregroundEscapeSequence)
+            self.currentForegroundColor = cell.foregroundColor
+        }
+        let backgroundColor = cell.backgroundColor ?? .default
+        if self.currentBackgroundColor != backgroundColor {
+            write(backgroundColor.backgroundEscapeSequence)
+            self.currentBackgroundColor = backgroundColor
+        }
+        self.updateAttributes(cell.attributes)
+        write(String(cell.char))
+        self.currentPosition.column += 1
+    }
+
+    private func drawPixel2(_ cell: Cell, at position: Position) {
         guard position.column >= 0, position.line >= 0, position.column < layer.frame.size.width, position.line < layer.frame.size.height else {
             return
         }
         if cache[position.line.intValue][position.column.intValue] != cell {
             cache[position.line.intValue][position.column.intValue] = cell
             if self.currentPosition != position {
-                write(moveTo(position, screenHeight: height))
+                write(moveTo(position))
                 self.currentPosition = position
             }
             if self.currentForegroundColor != cell.foregroundColor {
@@ -88,9 +162,9 @@ class Renderer {
     }
 
     private func setup() {
-        write(ANSIEscapeCode.EnterAlternativeScreen)
-        write(ANSIEscapeCode.ClearScreen)
-        write(moveTo(currentPosition, screenHeight: layer.frame.size.height))
+        //write(ANSIEscapeCode.EnterAlternativeScreen)
+        //write(ANSIEscapeCode.ClearScreen)
+        //write(moveTo(currentPosition))
         write(ANSIEscapeCode.CursorHide)
     }
 
@@ -118,13 +192,8 @@ class Renderer {
         currentAttributes = attributes
     }
 
-    /// Converts SwiftTUI coordinates (bottom-left origin) to terminal coordinates (top-left origin, 1-indexed)
-    /// - Parameters:
-    ///   - position: Position in SwiftTUI coordinate system (line=0 is bottom, negative is up)
-    ///   - screenHeight: Height of the screen
-    /// - Returns: ANSI escape sequence to move cursor to the specified position
-    private func moveTo(_ position: Position, screenHeight: Extended) -> String {
-        let terminalRow = position.row - 1
+    private func moveTo(_ position: Position) -> String {
+        let terminalRow = position.line - 1
         let terminalColumn = position.column
         return ANSIEscapeCode.moveCursorTo(x: terminalColumn.intValue, y: terminalRow.intValue)
     }
