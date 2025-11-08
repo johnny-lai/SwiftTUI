@@ -72,8 +72,14 @@ private struct FlexibleFrame<Content: View>: View, PrimitiveView, ModifierView {
             let size = children[0].size(proposedSize: proposedSize)
             if minHeight == nil, maxHeight == nil {
                 proposedSize.height = size.height
+            } else if maxHeight == .infinity, size.height > proposedSize.height {
+                // When maxHeight is infinity, grow to fit the content
+                proposedSize.height = size.height
             }
             if minWidth == nil, maxWidth == nil {
+                proposedSize.width = size.width
+            } else if maxWidth == .infinity, size.width > proposedSize.width {
+                // When maxWidth is infinity, grow to fit the content
                 proposedSize.width = size.width
             }
             return proposedSize
