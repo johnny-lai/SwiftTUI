@@ -68,9 +68,12 @@ class Renderer {
             return
         }
 
+        // Window dimentsions
+        let windowWidth = layer.frame.size.width.intValue
+        let windowHeight = layer.frame.size.height.intValue
+
         // Calculate number of rows that needs to be re-rendered
         let contentHeight = contentLayer.frame.size.height.intValue
-        let windowHeight = layer.frame.size.height.intValue
         var offset = 0
         if contentHeight < windowHeight {
             offset = 0
@@ -88,17 +91,26 @@ class Renderer {
         }
 
         // Move cursor back required lines
-        if contentHeight < windowHeight {
-            write(ANSIEscapeCode.moveCursorTo(x: 0, y: windowHeight - contentHeight + rect.minLine.intValue))
+        let renderedHeight = max(contentHeight, linesRendered)
+        if renderedHeight <= windowHeight {
+            write(ANSIEscapeCode.moveCursorTo(x: 0, y: windowHeight - renderedHeight + rect.minLine.intValue))
+
+            // Erase lines that were rendered previously
+            let linesToErase = renderedHeight - contentHeight
+            if linesToErase > 0 {
+                let emptyCell = Cell(char: " ")
+                for _ in 0 ..< linesToErase {
+                    for _ in 0 ..< windowWidth {
+                        drawPixel(emptyCell)
+                    }
+                    write(ANSIEscapeCode.CursorNextLine)
+                }
+            }
         } else {
             write(ANSIEscapeCode.moveCursorTo(x: 0, y: rect.minLine.intValue))
         }
 
-        // Start on beginning of line
-        ///self.currentPosition += Position(column: .zero, line: Extended(-moveUp))
-
         // Render those lines again
-        let windowWidth = layer.frame.size.width.intValue
         let minLine = rect.minLine.intValue + offset
         for line in minLine ..< contentHeight {
             for column in 0 ..< windowWidth {
@@ -107,14 +119,10 @@ class Renderer {
                     drawPixel(cell)
                 }
             }
-            //write(ANSIEscapeCode.CursorNextLine)
-            if line < contentHeight - 1 {
-                write("\n")
-            }
-            // write("\n")
+            write(ANSIEscapeCode.CursorNextLine)
         }
 
-        linesRendered = contentHeight
+        linesRendered = renderedHeight
     }
 
     func stop() {
