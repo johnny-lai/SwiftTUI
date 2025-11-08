@@ -89,18 +89,19 @@ class Renderer {
 
         // Move cursor back required lines
         if contentHeight < windowHeight {
-            write(ANSIEscapeCode.moveCursorTo(x: 0, y: windowHeight - contentHeight))
+            write(ANSIEscapeCode.moveCursorTo(x: 0, y: windowHeight - contentHeight + rect.minLine.intValue))
         } else {
-            write(ANSIEscapeCode.moveCursorTo(x: 0, y: 0))
+            write(ANSIEscapeCode.moveCursorTo(x: 0, y: rect.minLine.intValue))
         }
 
         // Start on beginning of line
         ///self.currentPosition += Position(column: .zero, line: Extended(-moveUp))
 
         // Render those lines again
+        let windowWidth = layer.frame.size.width.intValue
         let minLine = rect.minLine.intValue + offset
         for line in minLine ..< contentHeight {
-            for column in rect.minColumn.intValue ... rect.maxColumn.intValue {
+            for column in 0 ..< windowWidth {
                 let position = Position(column: Extended(column), line: Extended(line))
                 if let cell = layer.cell(at: position) {
                     drawPixel(cell)
