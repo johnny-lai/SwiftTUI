@@ -5,7 +5,7 @@ import AppKit
 
 public class Application: @unchecked Sendable {
     private let node: Node
-    private let window: Window
+    let window: Window
     private let control: Control
     private let renderer: Renderer
 
@@ -16,7 +16,7 @@ public class Application: @unchecked Sendable {
     private var invalidatedNodes: [Node] = []
     private var updateScheduled = false
 
-    public init<I: View>(rootView: I, runLoopType: RunLoopType = .dispatch) {
+    public init<I: View>(rootView: I, renderer: Renderer = AltScreenRenderer(), runLoopType: RunLoopType = .dispatch) {
         self.runLoopType = runLoopType
 
         node = Node(view: VStack(content: rootView).view)
@@ -30,11 +30,11 @@ public class Application: @unchecked Sendable {
         window.firstResponder = control.firstSelectableElement
         window.firstResponder?.becomeFirstResponder()
 
-        renderer = Renderer(layer: window.layer, contentLayer: control.layer)
-        window.layer.renderer = renderer
+        self.renderer = renderer
+        window.layer.renderer = self.renderer
 
         node.application = self
-        renderer.application = self
+        self.renderer.application = self
     }
 
     var stdInSource: DispatchSourceRead?
@@ -52,6 +52,8 @@ public class Application: @unchecked Sendable {
     }
 
     @MainActor public func start() {
+        renderer.start()
+
         setInputMode()
         updateWindowSize()
         let proposal = control.size(proposedSize: Size(width: window.layer.frame.size.width, height: 0))
@@ -178,7 +180,7 @@ public class Application: @unchecked Sendable {
         let proposal = control.size(proposedSize: Size(width: window.layer.frame.size.width, height: 0))
         control.layout(size: Size(width: window.layer.frame.size.width, height: proposal.height))
         
-        renderer.setCache()
+        renderer.didChangeLayer()
     }
 
     private func stop() {

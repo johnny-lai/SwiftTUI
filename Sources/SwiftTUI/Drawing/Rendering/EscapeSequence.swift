@@ -1,3 +1,4 @@
+import AnsiEscapes
 import Foundation
 
 enum EscapeSequence {
