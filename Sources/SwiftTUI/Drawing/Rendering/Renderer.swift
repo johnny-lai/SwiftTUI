@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 public protocol Renderer: AnyObject {
     var application: Application? { get set }
 

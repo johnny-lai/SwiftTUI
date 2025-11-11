@@ -3,6 +3,7 @@ import Foundation
 import AppKit
 #endif
 
+@MainActor
 public class Application: @unchecked Sendable {
     private let node: Node
     let window: Window
