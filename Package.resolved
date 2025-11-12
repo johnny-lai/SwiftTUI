@@ -1,5 +1,15 @@
 {
+  "originHash" : "83572aa417d8d3b7e7f8e62caf386b913232fb51a72cfe546b5e80f2df12a254",
   "pins" : [
+    {
+      "identity" : "swift-ansi-escapes",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ikelax/swift-ansi-escapes",
+      "state" : {
+        "revision" : "9fde6cb765ee0f99212b24420116ceac8f8fe0b7",
+        "version" : "0.1.0"
+      }
+    },
     {
       "identity" : "swift-docc-plugin",
       "kind" : "remoteSourceControl",
@@ -19,5 +29,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
