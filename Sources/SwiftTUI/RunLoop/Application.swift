@@ -3,9 +3,10 @@ import Foundation
 import AppKit
 #endif
 
+@MainActor
 public class Application: @unchecked Sendable {
     private let node: Node
-    private let window: Window
+    let window: Window
     private let control: Control
     private let renderer: Renderer
 
@@ -16,7 +17,7 @@ public class Application: @unchecked Sendable {
     private var invalidatedNodes: [Node] = []
     private var updateScheduled = false
 
-    public init<I: View>(rootView: I, runLoopType: RunLoopType = .dispatch) {
+    public init<I: View>(rootView: I, renderer: Renderer = AltScreenRenderer(), runLoopType: RunLoopType = .dispatch) {
         self.runLoopType = runLoopType
 
         node = Node(view: VStack(content: rootView).view)
@@ -30,11 +31,11 @@ public class Application: @unchecked Sendable {
         window.firstResponder = control.firstSelectableElement
         window.firstResponder?.becomeFirstResponder()
 
-        renderer = Renderer(layer: window.layer)
-        window.layer.renderer = renderer
+        self.renderer = renderer
+        window.layer.renderer = self.renderer
 
         node.application = self
-        renderer.application = self
+        self.renderer.application = self
     }
 
     var stdInSource: DispatchSourceRead?
@@ -52,10 +53,13 @@ public class Application: @unchecked Sendable {
     }
 
     @MainActor public func start() {
+        renderer.start()
+
         setInputMode()
         updateWindowSize()
-        control.layout(size: window.layer.frame.size)
-        renderer.draw()
+        let proposal = control.size(proposedSize: Size(width: window.layer.frame.size.width, height: 0))
+        control.layout(size: Size(width: window.layer.frame.size.width, height: proposal.height))
+        //renderer.draw()
 
         let stdInSource = DispatchSource.makeReadSource(fileDescriptor: STDIN_FILENO, queue: .main)
         stdInSource.setEventHandler(qos: .default, flags: [], handler: self.handleInput)
@@ -153,7 +157,9 @@ public class Application: @unchecked Sendable {
         }
         invalidatedNodes = []
 
-        control.layout(size: window.layer.frame.size)
+        let proposal = control.size(proposedSize: Size(width: window.layer.frame.size.width, height: 0))
+        control.layout(size: Size(width: window.layer.frame.size.width, height: proposal.height))
+        //control.layout(size: window.layer.frame.size)
         renderer.update()
     }
 
@@ -171,7 +177,11 @@ public class Application: @unchecked Sendable {
             return
         }
         window.layer.frame.size = Size(width: Extended(Int(size.ws_col)), height: Extended(Int(size.ws_row)))
-        renderer.setCache()
+
+        let proposal = control.size(proposedSize: Size(width: window.layer.frame.size.width, height: 0))
+        control.layout(size: Size(width: window.layer.frame.size.width, height: proposal.height))
+        
+        renderer.didChangeLayer()
     }
 
     private func stop() {

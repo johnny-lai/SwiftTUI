@@ -2,6 +2,7 @@ import XCTest
 @testable import SwiftTUI
 
 final class ViewBuildTests: XCTestCase {
+    @MainActor
     func test_VStack_TupleView2() throws {
         struct MyView: View {
             var body: some View {
@@ -21,6 +22,7 @@ final class ViewBuildTests: XCTestCase {
             """)
     }
 
+    @MainActor
     func test_conditional_VStack() throws {
         struct MyView: View {
             @State var value = true
@@ -42,6 +44,7 @@ final class ViewBuildTests: XCTestCase {
             """)
     }
 
+    @MainActor
     private func buildView<V: View>(_ view: V) throws -> Control {
         let node = Node(view: VStack(content: view).view)
         node.build()

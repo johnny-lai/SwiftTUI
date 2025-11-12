@@ -46,6 +46,13 @@ To run your app, change to your package's directory and run it from the terminal
 swift run
 ```
 
+The default Renderer is the `AltScreenRenderer`. If you do not want the UI to flow in
+normal mode, you can use
+
+```swift
+Application(rootView: MyTerminalView(), renderer: NormalRenderer()).start()
+```
+
 For more, and to see the supported functionality, check out the [documentation](https://rensbreur.github.io/SwiftTUI/documentation/swifttui/).
 
 ### Examples

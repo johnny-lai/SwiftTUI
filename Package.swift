@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "SwiftTUI",
     platforms: [
-        .macOS(.v11)
+        .macOS(.v13)
     ],
     products: [
         .library(
@@ -13,12 +13,15 @@ let package = Package(
             targets: ["SwiftTUI"])
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0")
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
+        .package(url: "https://github.com/ikelax/swift-ansi-escapes", from: "0.1.0")
     ],
     targets: [
         .target(
             name: "SwiftTUI",
-            dependencies: []),
+            dependencies: [
+                .product(name: "AnsiEscapes", package: "swift-ansi-escapes")
+            ]),
         .testTarget(
             name: "SwiftTUITests",
             dependencies: ["SwiftTUI"]),
