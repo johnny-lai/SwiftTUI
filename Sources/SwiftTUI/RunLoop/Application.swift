@@ -62,17 +62,23 @@ public class Application: @unchecked Sendable {
         //renderer.draw()
 
         let stdInSource = DispatchSource.makeReadSource(fileDescriptor: STDIN_FILENO, queue: .main)
-        stdInSource.setEventHandler(qos: .default, flags: [], handler: self.handleInput)
+        stdInSource.setEventHandler(qos: .default, flags: []) { [weak self] in
+            self?.handleInput()
+        }
         stdInSource.resume()
         self.stdInSource = stdInSource
 
         let sigWinChSource = DispatchSource.makeSignalSource(signal: SIGWINCH, queue: .main)
-        sigWinChSource.setEventHandler(qos: .default, flags: [], handler: self.handleWindowSizeChange)
+        sigWinChSource.setEventHandler(qos: .default, flags: []) { [weak self] in
+            self?.handleWindowSizeChange()
+        }
         sigWinChSource.resume()
 
         signal(SIGINT, SIG_IGN)
         let sigIntSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
-        sigIntSource.setEventHandler(qos: .default, flags: [], handler: self.stop)
+        sigIntSource.setEventHandler(qos: .default, flags: []) { [weak self] in
+            self?.stop()
+        }
         sigIntSource.resume()
 
         switch runLoopType {
